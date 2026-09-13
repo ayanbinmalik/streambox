@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamBox - Personal Media Catalog</title>
+    <style>
+        :root {
+            --bg-color: #141414;
+            --card-bg: #1e1e1e;
+            --accent-color: #e50914;
+            --text-color: #ffffff;
+            --text-secondary: #aaaaaa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding-bottom: 50px;
+        }
+
+        header {
+            background-color: rgba(0, 0, 0, 0.85);
+            padding: 20px 5%;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            letter-spacing: 1px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .video-card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+
+        .thumbnail {
+            width: 100%;
+            height: 140px;
+            background-color: #333;
+            object-fit: cover;
+        }
+
+        .info {
+            padding: 15px;
+        }
+
+        .title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Video Modal Player */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            width: 90%;
+            max-width: 900px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        video {
+            width: 100%;
+            display: block;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: #fff;
+            font-size: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">StreamBox</div>
+    </header>
+
+    <div class="container">
+        <h2>Latest Uploads</h2>
+        <div class="video-grid" id="videoGrid"></div>
+    </div>
+
+    <!-- Player Modal -->
+    <div class="modal" id="videoModal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeBtn">&times;</span>
+            <video id="mainPlayer" controls autoplay></video>
+        </div>
+    </div>
+
+    <script>
+        // Sample Video Data (Replace videoUrl and thumbnailUrl with your own hosted links)
+        const videos = [
+            {
+                id: "1",
+                title: "Big Buck Bunny",
+                duration: "9:56",
+                thumbnailUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_big.jpg/800px-Big_buck_bunny_poster_big.jpg",
+                videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+            },
+            {
+                id: "2",
+                title: "Elephant Dream",
+                duration: "10:53",
+                thumbnailUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Elephants_Dream_poster.jpg/800px-Elephants_Dream_poster.jpg",
+                videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
+            },
+            {
+                id: "3",
+                title: "For Bigger Blazes",
+                duration: "0:15",
+                thumbnailUrl: "https://images.unsplash.com/photo-1518173946687-a4c8a383392e?w=500",
+                videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+            }
+        ];
+
+        const videoGrid = document.getElementById('videoGrid');
+        const videoModal = document.getElementById('videoModal');
+        const mainPlayer = document.getElementById('mainPlayer');
+        const closeBtn = document.getElementById('closeBtn');
+
+        // Render Cards dynamically
+        function loadCatalog() {
+            videoGrid.innerHTML = '';
+            videos.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.onclick = () => playVideo(item.videoUrl);
+
+                card.innerHTML = `
+                    <img class="thumbnail" src="${item.thumbnailUrl}" alt="${item.title}">
+                    <div class="info">
+                        <div class="title">${item.title}</div>
+                        <div class="meta">Duration: ${item.duration}</div>
+                    </div>
+                `;
+                videoGrid.appendChild(card);
+            });
+        }
+
+        // Open Modal and Play
+        function playVideo(url) {
+            mainPlayer.src = url;
+            videoModal.style.display = 'flex';
+        }
+
+        // Close Modal
+        closeBtn.onclick = () => {
+            videoModal.style.display = 'none';
+            mainPlayer.pause();
+            mainPlayer.src = "";
+        };
+
+        window.onclick = (event) => {
+            if (event.target === videoModal) {
+                videoModal.style.display = 'none';
+                mainPlayer.pause();
+                mainPlayer.src = "";
+            }
+        };
+
+        // Initialize page
+        loadCatalog();
+    </script>
+</body>
+</html>
